@@ -43,8 +43,6 @@ class _MainScreenState extends State<MainScreen> {
         content: Text('Permission required to save quotes!'),
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } else {
-      return;
     }
   }
 
@@ -60,7 +58,8 @@ class _MainScreenState extends State<MainScreen> {
       print(pngBytes);
       print(bs64);
       setState(() {});
-      final File myFile = File('/storage/emulated/0/Download/$item.png');
+      final File myFile =
+          File('/storage/emulated/0/Download/${DateTime.now()}.png');
       myFile.writeAsBytes(pngBytes);
       final snackBar = SnackBar(
         content: Text('Quote Saved in Downloads Folder! ❤'),
@@ -96,7 +95,12 @@ class _MainScreenState extends State<MainScreen> {
           "Content-Type": "application/json;charset=UTF-8",
           "Charset": "utf-8"
         });
-    json2 = jsonDecode(response2.body);
+    try {
+      json2 = jsonDecode(response2.body);
+    } catch (Exception) {
+      getImage();
+      return;
+    }
     setState(() {
       if (image.contains(json['urls']['regular']) ||
           quotes.contains(json2['quoteText'])) {
@@ -115,129 +119,132 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final PageController controller = PageController(initialPage: 0);
     return Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.white,
-        body: FutureBuilder(
-          future: Future.delayed(Duration(milliseconds: 2000), () => true),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData)
-              return Center(
-                child: Text(
-                  'Loading',
-                  style: TextStyle(
-                    fontSize: 22,
-                    color: Color(0xFF000000),
-                    fontWeight: FontWeight.bold,
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.white,
+      body: FutureBuilder(
+        future: Future.delayed(Duration(milliseconds: 2000), () => true),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData)
+            return Center(
+              child: Text(
+                'Loading',
+                style: TextStyle(
+                  fontSize: 22,
+                  color: Color(0xFF000000),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          else
+            return Stack(
+              children: [
+                RepaintBoundary(
+                  key: _globalKey,
+                  child: PageView.builder(
+                    scrollDirection: Axis.vertical,
+                    controller: controller,
+                    onPageChanged: (value) {
+                      getImage();
+                      item = value + 1;
+                    },
+                    itemBuilder: (BuildContext context, int index) {
+                      if (hash != null)
+                        return QuoteTile(
+                          hash: hash[index],
+                          url: image[index],
+                          quote: quotes[index]
+                              .replaceAll("\"", "'")
+                              .replaceAll("â", "as"),
+                          author: author[index],
+                        );
+                      else
+                        return QuoteTile(
+                            hash: "LbK_LGxu?bIUazxt-pRj_Nt7oeRj",
+                            url: image[index]);
+                    },
                   ),
                 ),
-              );
-            else
-              return Stack(
-                children: [
-                  RepaintBoundary(
-                    key: _globalKey,
-                    child: PageView.builder(
-                      scrollDirection: Axis.vertical,
-                      controller: controller,
-                      onPageChanged: (value) {
-                        getImage();
-                        item = value + 1;
-                      },
-                      itemBuilder: (BuildContext context, int index) {
-                        if (hash != null)
-                          return QuoteTile(
-                            hash: hash[index],
-                            url: image[index],
-                            quote: quotes[index].replaceAll("\"", "'"),
-                            author: author[index],
-                          );
-                        else
-                          return QuoteTile(
-                              hash: "LbK_LGxu?bIUazxt-pRj_Nt7oeRj",
-                              url: image[index]);
-                      },
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width / 1,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(
+                          35,
+                        ),
+                        topRight: Radius.circular(
+                          30,
+                        ),
+                      ),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            liked[item - 1]
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: liked[item - 1]
+                                ? Colors.redAccent
+                                : Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              liked[item - 1] = true;
+                            });
+                            _capturePng();
+                          },
+                        ),
+                        SizedBox(),
+                        IconButton(
+                          icon: Icon(
+                            Icons.info_outline,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            final snackBar = SnackBar(
+                              content: Text('Made By Aditya Tajanpure!'),
+                            );
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(snackBar);
+                          },
+                        )
+                      ],
                     ),
                   ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
+                ),
+                Positioned(
+                  bottom: 25,
+                  left: MediaQuery.of(context).size.width / 2 - 35,
+                  child: InkWell(
+                    onTap: () {
+                      controller.animateToPage(item,
+                          duration: Duration(seconds: 1),
+                          curve: Curves.easeInToLinear);
+                    },
                     child: Container(
-                      width: MediaQuery.of(context).size.width / 1,
                       height: 70,
+                      width: 70,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(
-                            35,
-                          ),
-                          topRight: Radius.circular(
-                            30,
-                          ),
-                        ),
+                          color: Colors.blueAccent,
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Icon(
+                        Icons.format_quote_sharp,
                         color: Colors.white,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              liked[item - 1]
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: liked[item - 1]
-                                  ? Colors.redAccent
-                                  : Colors.grey,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                liked[item - 1] = true;
-                              });
-                              _capturePng();
-                            },
-                          ),
-                          SizedBox(),
-                          IconButton(
-                            icon: Icon(
-                              Icons.info_outline,
-                              color: Colors.grey,
-                            ),
-                            onPressed: () {
-                              final snackBar = SnackBar(
-                                content: Text('Made By Aditya Tajanpure!'),
-                              );
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(snackBar);
-                            },
-                          )
-                        ],
-                      ),
                     ),
                   ),
-                  Positioned(
-                    bottom: 25,
-                    left: MediaQuery.of(context).size.width / 2 - 35,
-                    child: InkWell(
-                      onTap: () {
-                        controller.animateToPage(item,
-                            duration: Duration(seconds: 1),
-                            curve: Curves.easeInToLinear);
-                      },
-                      child: Container(
-                        height: 70,
-                        width: 70,
-                        decoration: BoxDecoration(
-                            color: Colors.blueAccent,
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Icon(
-                          Icons.format_quote_sharp,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-          },
-        ));
+                ),
+              ],
+            );
+        },
+      ),
+    );
   }
 }
 
@@ -282,19 +289,25 @@ class QuoteTile extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  "$quote",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 22,
-                      color: Color(0xFFfFFFFF),
-                      fontWeight: FontWeight.bold),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 5,
+                    horizontal: 8,
+                  ),
+                  child: Text(
+                    "$quote",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 22,
+                        color: Color(0xFFfFFFFF),
+                        fontWeight: FontWeight.bold),
+                  ),
                 ),
                 SizedBox(
                   height: 10,
                 ),
                 Text(
-                  "-- $author --",
+                  "-- ${author.length == 0 ? "Unknown" : author} --",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 21,
